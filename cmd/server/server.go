@@ -1,50 +1,41 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
-	socketio "github.com/googollee/go-socket.io"
+	gosocketio "github.com/graarh/golang-socketio"
+	"github.com/graarh/golang-socketio/transport"
 )
 
-func main() {
-	fmt.Println("Start server...")
-	server, err := socketio.NewServer(nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	server.OnConnect("/", func(s socketio.Conn) error {
-		s.SetContext("")
-		fmt.Println("connected:", s.ID())
-		return nil
-	})
-	server.OnEvent("/", "notice", func(s socketio.Conn, msg string) {
-		fmt.Println("notice:", msg)
-		s.Emit("reply", "have "+msg)
-	})
-	server.OnEvent("/chat", "msg", func(s socketio.Conn, msg string) string {
-		s.SetContext(msg)
-		return "recv " + msg
-	})
-	server.OnEvent("/", "bye", func(s socketio.Conn) string {
-		last := s.Context().(string)
-		s.Emit("bye", last)
-		s.Close()
-		return last
-	})
-	server.OnError("/", func(s socketio.Conn, e error) {
-		fmt.Println("meet error:", e)
-	})
-	server.OnDisconnect("/", func(s socketio.Conn, reason string) {
-		fmt.Println("closed", reason)
-	})
-	go server.Serve()
-	defer server.Close()
+const SERVER_NAME = "SERVER"
 
-	http.Handle("/socket.io/", server)
-	http.Handle("/", http.FileServer(http.Dir("./asset")))
-	log.Printf("Serving at localhost:%s...", os.Getenv("PORT"))
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), nil))
+func main() {
+	server := gosocketio.NewServer(transport.GetDefaultWebsocketTransport())
+
+	server.On(gosocketio.OnConnection, func(c *gosocketio.Channel) {
+		log.Println("Connected")
+
+		c.Emit("/message", Message{SERVER_NAME, "main", "using emit"})
+
+		c.Join("test")
+		c.BroadcastTo("test", "/message", Message{SERVER_NAME, "main", "using broadcast"})
+	})
+	server.On(gosocketio.OnDisconnection, func(c *gosocketio.Channel) {
+		log.Println("Disconnected")
+	})
+
+	server.On("/join", func(c *gosocketio.Channel, channel Channel) string {
+		time.Sleep(2 * time.Second)
+		log.Println("Client joined to ", channel.Channel)
+		return "joined to " + channel.Channel
+	})
+
+	serveMux := http.NewServeMux()
+	serveMux.Handle("/socket.io/", server)
+
+	log.Printf("Serving at localhost:%s...\n", os.Getenv("PORT"))
+	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), serveMux))
 }

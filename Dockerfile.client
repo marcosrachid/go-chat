@@ -2,10 +2,6 @@ FROM golang:1.14.3-alpine as builder
 
 WORKDIR /client
 
-COPY go.mod go.sum ./
-
-RUN go mod download
-
 COPY ./cmd/client .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o client .

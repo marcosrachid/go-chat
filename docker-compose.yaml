@@ -24,6 +24,9 @@ services:
       context: .
       dockerfile: Dockerfile.client
     restart: unless-stopped
+    environment:
+      - SERVER_IP=server
+      - SERVER_PORT=3000
     depends_on:
       - server
     networks:
@@ -34,6 +37,9 @@ services:
       context: .
       dockerfile: Dockerfile.client
     restart: unless-stopped
+    environment:
+      - SERVER_IP=server
+      - SERVER_PORT=3000
     depends_on:
       - server
     networks:
@@ -44,6 +50,9 @@ services:
       context: .
       dockerfile: Dockerfile.client
     restart: unless-stopped
+    environment:
+      - SERVER_IP=server
+      - SERVER_PORT=3000
     depends_on:
       - server
     networks:
