@@ -1,7 +1,7 @@
 package models
 
 type Message struct {
-	Channel string `json:"channel"`
 	From    string `json:"from"`
+	Channel string `json:"channel"`
 	Text    string `json:"text"`
 }
