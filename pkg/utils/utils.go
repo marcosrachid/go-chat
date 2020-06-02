@@ -3,9 +3,9 @@ package utils
 import "os"
 
 func GetenvDefault(key, fallback string) string {
-	value := os.Getenv(key)
-	if len(value) == 0 {
-		return fallback
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		value = fallback
 	}
 	return value
 }

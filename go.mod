@@ -1,6 +1,6 @@
-module github.com/marcosrachid/go-chat
+module go-chat
 
-go 1.12
+go 1.14
 
 require (
 	github.com/gorilla/websocket v1.4.2 // indirect

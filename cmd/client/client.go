@@ -1,50 +1,75 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
 	"log"
-	"net"
-	"os"
-	"strings"
-	
-	socketio "github.com/graarh/golang-socketio"
+	"runtime"
+	"strconv"
+	"time"
+
+	"go-chat/pkg/models"
+	"go-chat/pkg/utils"
+
+	gosocketio "github.com/graarh/golang-socketio"
+	"github.com/graarh/golang-socketio/transport"
 )
 
-const STOP_CHARACTER = "\r\n\r\n"
+const (
+	SERVER_IP   = "localhost"
+	SERVER_PORT = "3000"
+)
 
-// func receive(conn net.Conn) <-chan string {
-
-// }
+func sendJoin(c *gosocketio.Client) {
+	log.Println("Acking /join")
+	result, err := c.Ack("/join", models.Channel{"main"}, time.Second*5)
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		log.Println("Ack result to /join: ", result)
+	}
+}
 
 func main() {
-	addr := strings.Join([]string{os.Getenv("SERVER_IP"), os.Getenv("SERVER_PORT")}, ":")
-	fmt.Printf("Connecting to %s...\n", addr)
-	conn, err := net.Dial("tcp", addr)
-
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	ip := utils.GetenvDefault("SERVER_IP", SERVER_IP)
+	port, _ := strconv.Atoi(utils.GetenvDefault("SERVER_PORT", SERVER_PORT))
+	c, err := gosocketio.Dial(
+		gosocketio.GetUrl(ip, port, false),
+		transport.GetDefaultWebsocketTransport())
 	if err != nil {
-		log.Fatalln(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
-	defer conn.Close()
-	fmt.Printf("Connection: %v\n", conn)
-
-	for {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("-> ")
-
-		text, _ := reader.ReadString('\n')
-		text = strings.Replace(text, "\n", "", -1)
-
-		fmt.Println(text)
-
-		if strings.Compare("!quit", text) == 0 {
-			log.Println("bye!")
-			os.Exit(0)
-		}
-
-		conn.Write([]byte(text))
-		conn.Write([]byte(STOP_CHARACTER))
+	err = c.On("/message", func(h *gosocketio.Channel, args models.Message) {
+		log.Println("--- Got chat message: ", args)
+	})
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	err = c.On(gosocketio.OnDisconnection, func(h *gosocketio.Channel) {
+		log.Fatal("Disconnected")
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = c.On(gosocketio.OnConnection, func(h *gosocketio.Channel) {
+		log.Println("Connected")
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	time.Sleep(1 * time.Second)
+
+	go sendJoin(c)
+	go sendJoin(c)
+	go sendJoin(c)
+	go sendJoin(c)
+	go sendJoin(c)
+
+	time.Sleep(60 * time.Second)
+	c.Close()
+
+	log.Println(" [x] Complete")
 }

@@ -5,14 +5,15 @@ import (
 	"net/http"
 	"time"
 
+	"go-chat/pkg/models"
+	"go-chat/pkg/utils"
+
 	gosocketio "github.com/graarh/golang-socketio"
 	"github.com/graarh/golang-socketio/transport"
-	"github.com/marcosrachid/go-chat/internal/models"
-	"github.com/marcosrachid/go-chat/internal/utils"
 )
 
 const (
-	SERVER_NAME = "SERVER"
+	SERVER_NAME = ""
 	PORT        = "3000"
 )
 
